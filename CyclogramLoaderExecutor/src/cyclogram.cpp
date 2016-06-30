@@ -1,7 +1,6 @@
 #include "cyclogram.h"
 #include <stddef.h>
 
-
 Cyclogram::Cyclogram(void* base_address) {
 	this->base_address = base_address;
 }
@@ -15,37 +14,43 @@ Command* Cyclogram::Iterator::operator *() {
 }
 
 Cyclogram::Iterator& Cyclogram::Iterator::operator ++() {
-	this->address += (offsetof(Command, data) + (*(*this))->len);
+	this->address = (uint8_t *)(this->address) + (offsetof(Command, data) + (*(*this))->len);
 }
 
-void* Cyclogram::Iterator::getCurrAddress() {
-	return address;
+Command* Cyclogram::Iterator::getCurrCmdAddress() {
+	return (Command *)address;
 }
 
-Cyclogram::CmdStack::CmdStack(void *base, void *end) {
-	this->base = base;
-	this->end = end;
-	curr_address = (uint16_t *)base;
+Cyclogram::CmdStack::CmdStack(void *base, size_t count) {
+	this->base = (Command **)base;
+	curr_address = this->base;
+	capacity = count;
+	size = 0;
 }
 
-void Cyclogram::CmdStack::push(void *address) {
-	if(curr_address == (uint16_t *)base) {
-		*curr_address = (uint16_t)address;
+void Cyclogram::CmdStack::push(Command *address) {
+	if (size < capacity) {
+		*(curr_address++) = address;
+		size++;
 	}
-	else if (curr_address != (uint16_t *)end) {
-		*(++curr_address) = (uint16_t)address;		
-	}
 }
 
-void* Cyclogram::CmdStack::pop() {
-	if(curr_address == (uint16_t *)base) {
-		return (void *)(*curr_address);
+Command* Cyclogram::CmdStack::pop() {
+	if(size > 0) {
+		size--;
+		return *(--curr_address);
 	}
 	else {
-		return (void *)(*(curr_address--));
-	} 
+		return nullptr;
+	}
 }
 
-void* Cyclogram::CmdStack::peek() {
-	return (void *)(*curr_address);
+Command* Cyclogram::CmdStack::peek() {
+	if(size > 0) {
+		Command **tmp = curr_address;
+		return *(--tmp);
+	}
+	else { 
+		return nullptr;
+	}
 }

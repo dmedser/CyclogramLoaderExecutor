@@ -5,46 +5,75 @@
 
 int main(void)
 {
-	/*
-	volatile Command *command1 = *it;
-	++it;
-	volatile Command *command2 = *it;
 	
-	volatile uint8_t* ptr2 = command2->data;
-	volatile uint8_t fst2 = *(ptr2++);
-	volatile uint8_t sd2 = *(ptr2++);
-	volatile uint8_t thrd2 = *(ptr2++);
-	volatile uint8_t frth2 = *ptr2;
-	*/
 	volatile uint8_t *a8 = (uint8_t *)BASE_SRAM;
 	volatile uint16_t *a16 = (uint16_t *)a8;
 	*(a16++) = 1;
+	*(a16++) = 1;
+	*(a16++) = 1;
+	*(a16++) = 1;
+	*(a16++) = 1;
+	a8 = (uint8_t *)a16;
+	*(a8++) = 0x11;
+	a16 = (uint16_t *)a8;
+	
 	*(a16++) = 2;
+	*(a16++) = 2;
+	*(a16++) = 2;
+	*(a16++) = 2;
+	*(a16++) = 2;
+	*(a16++) = 0x2222;
+	
+	
 	*(a16++) = 3;
+	*(a16++) = 3;
+	*(a16++) = 3;
+	*(a16++) = 3;
+	*(a16++) = 3;
+	*(a16++) = 0x3333;
+	a8 = (uint8_t *)a16;
+	*(a8++) = 0x33;
+	a16 = (uint16_t *)a8;
+	
 	*(a16++) = 4;
 	*(a16++) = 4;
-	*(a16++) = 0xEF98;
-	*(a16++) = 0xABCD;
-	
-	*(a16++) = 99;
-	*(a16++) = 98;
-	*(a16++) = 97;
-	*(a16++) = 96;
-	*(a16++) = 2;
-	*(a16++) = 0x9999;
-	*a16 = 0x8888;
-	
+	*(a16++) = 4;
+	*(a16++) = 4;
+	*(a16++) = 4;
+	*(a16++) = 0x4444;
+	*(a16++) = 0x4444;
 	
 	
 	Cyclogram cyclogram((void *)BASE_SRAM);
 	Cyclogram::Iterator it((void *)BASE_SRAM);
-	Cyclogram::CmdStack cmdStack((void *)0x5E8, (void *)0x5EA);
-	cmdStack.push(it.getCurrAddress());
-	volatile void *fst_amd_addr = cmdStack.peek();
-	++it;
-	cmdStack.push(it.getCurrAddress());
-	volatile void *scd_amd_addr = cmdStack.peek();
+	Cyclogram::CmdStack cmdStack((void *)0x5E8, 4);
 	
+	cmdStack.push(it.getCurrCmdAddress());
+	++it;
+	cmdStack.push(it.getCurrCmdAddress());
+	++it;
+	cmdStack.push(it.getCurrCmdAddress());
+	++it;
+	cmdStack.push(it.getCurrCmdAddress());
+	
+	
+	Command *cmd4 = cmdStack.pop();
+	Command *cmd3 = cmdStack.pop();
+	Command *cmd2 = cmdStack.pop();
+	Command *cmd1 = cmdStack.pop();
+	
+	//Command *testPop1 = cmdStack.pop();
+	//Command *testPop2 = cmdStack.pop();
+	 
+	
+	/*
+	volatile Command *scdCmdAddr = cmdStack.pop();
+	volatile Command *fstCmdAddr = cmdStack.pop();
+	*/
+	/*
+	uint32_t data1 = *((uint32_t *)fstCmdAddr->data);
+	uint16_t data2 = *((uint16_t *)scdCmdAddr->data);
+	*/
     while (1) 
     {
     }

@@ -1,6 +1,7 @@
 #ifndef CYCLOGRAM_H_
 #define CYCLOGRAM_H_
  #include <stdint.h>
+ #include <stddef.h>
  
  
 
@@ -24,19 +25,20 @@ class Cyclogram {
 				Iterator(void *address);
 				Command* operator*();
 				Iterator& operator++();
-				void* getCurrAddress();
+				Command* getCurrCmdAddress();
 		};
 		
 		class CmdStack {
 			public:
-				CmdStack(void *base, void *end);
-				void push(void *address);
-				void* pop();
-				void* peek();
+				CmdStack(void *base, size_t count);
+				void push(Command *address);
+				Command* pop();
+				Command* peek();
 			private:
-				void *base;
-				void *end;
-				uint16_t *curr_address;
+				Command **base;
+				size_t capacity;
+				size_t size;
+				Command **curr_address;
 		};
 		
 	private:
