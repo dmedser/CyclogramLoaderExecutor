@@ -18,13 +18,17 @@ class Cyclogram {
 	public:
 		Cyclogram(void *base_address);
 		
+		void run(size_t cmdNo = 0);
+		
 		class Iterator {
 			private:
 				void *address;
 			public:
 				Iterator(void *address);
+				Iterator(const Iterator &anotherIterator);
 				Command* operator*();
 				Iterator& operator++();
+				Iterator operator++(int);
 				Command* getCurrCmdAddress();
 		};
 		

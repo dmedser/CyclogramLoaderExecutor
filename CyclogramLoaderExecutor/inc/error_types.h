@@ -1,0 +1,10 @@
+#ifndef ERROR_TYPES_H_
+#define ERROR_TYPES_H_
+
+#define ERROR_TYPE_OK					0
+#define ERROR_TYPE_NULL_PTR				1
+#define ERROR_TYPE_WRONG_PARAM			2
+#define ERROR_TYPE_BAUD_RATE_NOT_SET	3
+#define ERROR_TYPE_ILLEGAL_STATE		4
+
+#endif /* ERROR_TYPES_H_ */

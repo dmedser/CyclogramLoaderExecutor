@@ -170,13 +170,25 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="inc\assertion.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="inc\cyclogram.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="inc\error_types.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="inc\uart_config.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\cyclogram.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\main.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\uart_config.cpp">
       <SubType>compile</SubType>
     </Compile>
   </ItemGroup>
