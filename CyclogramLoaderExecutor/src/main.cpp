@@ -25,14 +25,14 @@ void check_error(uint8_t error)
 #define END   (0xABCD)
 
 
+
+
+
 int main(void)
 {	
-	
 	uint8_t ret_val;
-	
 	/* Глобальное разрешение прерываний */
 	SREG |= (1 << SREG_I);
-	
 	/* Инициализация UART */
 	{
 		struct uart_init uart_init;
@@ -45,27 +45,59 @@ int main(void)
 		check_error(ret_val);
 	}
 	
-	
 	volatile uint8_t *a8 = (uint8_t *)BASE_SRAM;
 	volatile uint16_t *a16 = (uint16_t *)a8;
+	
 	*(a16++) = 1;		//num
 	*(a16++) = LOOP;	//id
 	*(a16++) = 1;		//ts
 	*(a16++) = 1;		//tms
-	*(a16++) = 3;		//len
+	*(a16++) = 4;		//len
 	*(a16++) = START;
-	a8 = (uint8_t *)a16;
-	*(a8++) = 2;
+	*(a16++) = 0x0002;
 	
-	a16 = (uint16_t *)a8;
+	*(a16++) = 2;
+	*(a16++) = LOOP;
 	*(a16++) = 2;
 	*(a16++) = 2;
+	*(a16++) = 4;
+	*(a16++) = START;
+	*(a16++) = 0x0002;
+
+	*(a16++) = 3;
+	*(a16++) = 3;
+	*(a16++) = 3;
+	*(a16++) = 3;
 	*(a16++) = 2;
-	*(a16++) = 2;
-	*(a16++) = 2;
-	*(a16++) = 0x2222;
+	*(a16++) = 0xBBBB;
 	
+	*(a16++) = 4;
+	*(a16++) = LOOP;
+	*(a16++) = 4;
+	*(a16++) = 4;
+	*(a16++) = 2;
+	*(a16++) = END;
 	
+	*(a16++) = 5; // num
+	*(a16++) = 5; // id 
+	*(a16++) = 5; // ts
+	*(a16++) = 5; // tms
+	*(a16++) = 0; //len
+
+	*(a16++) = 6;
+	*(a16++) = LOOP;
+	*(a16++) = 6;
+	*(a16++) = 6;
+	*(a16++) = 2;
+	*(a16++) = END;
+	
+	*(a16++) = 5; // num
+	*(a16++) = STOP; // id 
+	*(a16++) = 5; // ts
+	*(a16++) = 5; // tms
+	*(a16++) = 0; //len
+	
+	/*
 	*(a16++) = 3;
 	*(a16++) = 3;
 	*(a16++) = 3;
@@ -88,17 +120,13 @@ int main(void)
 	*(a16++) = 5;
 	*(a16++) = 5;
 	*(a16++) = 0;
-	
-	
+	*/
 	
 	Cyclogram cyclogram((void *)BASE_SRAM);
-	
-	//Cyclogram::Iterator it((void *)BASE_SRAM);
-	//Cyclogram::CmdStack cmdStack((void *)0x5E8, 4);
 	cyclogram.run();
 	
 	
-	
+
 	
     while (1) 
     {

@@ -8,14 +8,30 @@
 #define START (0x28C8)
 #define END   (0xABCD)
 
-#define STACK_CAPACITY (10)
+#define STACK_CAPACITY	(2)
+#define STACK_BASE		(0x5E8)
+#define LOOP_CMD_COUNT_OF_ITERATIONS_OFFSET	(2) 
 
-#define STACK_BASE (0x5E8)
+
+uint8_t * Command::getCmdDataFromOffset(uint16_t offset) {
+	return (this->data + offset);
+}
+
+uint16_t Command::get2BytesForm(uint8_t *source) {
+	return *((uint16_t *)source);
+}
+
+IteratorAndCount::IteratorAndCount(const Cyclogram::Iterator &loopEntryIterator, uint16_t countOfIterations):loopEntryIterator(loopEntryIterator), countOfIterations(countOfIterations) {}
+
+IteratorAndCount& IteratorAndCount::operator =(const IteratorAndCount& anotherIteratorAndCount) {
+	this->loopEntryIterator = anotherIteratorAndCount.loopEntryIterator;
+	this->countOfIterations = anotherIteratorAndCount.countOfIterations;
+	return *this;
+}
 
 Cyclogram::Cyclogram(void* base_address) {
 	this->base_address = base_address;
 }
-
 
 void Cyclogram::run(size_t cmdNo) {
 	Iterator it(base_address);
@@ -25,21 +41,35 @@ void Cyclogram::run(size_t cmdNo) {
 		}
 	}
 	
-	Cyclogram::CmdStack cmdStack((void *)STACK_BASE, STACK_CAPACITY);
-
+	CmdStack cmdStack((void *)STACK_BASE, STACK_CAPACITY);
+	
 	while((*it)->id != STOP) {
+		Command *currCmd = *it;
+		if(currCmd->id == LOOP && currCmd->get2BytesForm(currCmd->data) == START) {
+			uint16_t countOfIterations = currCmd->get2BytesForm(currCmd->getCmdDataFromOffset(LOOP_CMD_COUNT_OF_ITERATIONS_OFFSET));
+			cmdStack.push(IteratorAndCount(it, countOfIterations));
+		}
+		if(currCmd->id == LOOP && currCmd->get2BytesForm(currCmd->data) == END) {
+			IteratorAndCount *lastLoopEntry = cmdStack.peek();
+			if(lastLoopEntry->countOfIterations > 0) {
+				lastLoopEntry->countOfIterations--;
+				it = lastLoopEntry->loopEntryIterator;
+			}
+			else {
+				cmdStack.pop();
+			}
+		}
 		uart_transmit_16((*it)->num);
-		it++;	
+		++it;	
 	}
+
+	uint8_t o = 0;
+	
 }
 
 
 Cyclogram::Iterator::Iterator(void *address) {
 	this->address = address;
-}
-
-Cyclogram::Iterator::Iterator(const Iterator &anotherIterator) {
-	this->address = anotherIterator.address;	
 }
 
 Command* Cyclogram::Iterator::operator *() {
@@ -52,43 +82,53 @@ Cyclogram::Iterator& Cyclogram::Iterator::operator ++() {
 }
 
 Cyclogram::Iterator Cyclogram::Iterator::operator ++(int) {
-	Iterator tmp(*this);
+	Iterator tmp = *this;
 	++(*this);
 	return tmp;
 }
 
-Command* Cyclogram::Iterator::getCurrCmdAddress() {
-	return (Command *)address;
+Cyclogram::Iterator& Cyclogram::Iterator::operator =(const Iterator &anotherIterator) {
+	this->address = anotherIterator.address;
+	return *this;
 }
 
-Cyclogram::CmdStack::CmdStack(void *base, size_t count) {
-	this->base = (Command **)base;
-	curr_address = this->base;
-	capacity = count;
+
+Cyclogram::CmdStack::CmdStack(void *base, size_t capacity) {
+	this->base = (IteratorAndCount *)base;
+	curr_element = this->base;
+	this->capacity = capacity;
 	size = 0;
 }
 
-void Cyclogram::CmdStack::push(Command *address) {
-	if (size < capacity) {
-		*(curr_address++) = address;
+bool Cyclogram::CmdStack::isEmpty() {
+	return (size == 0);
+}
+
+bool Cyclogram::CmdStack::isFull() {
+	return (size == capacity);	
+}
+
+void Cyclogram::CmdStack::push(const IteratorAndCount &newElement) {
+	if (!(this->isFull())) {
+		*(curr_element++) = newElement;
 		size++;
 	}
 }
 
-Command* Cyclogram::CmdStack::pop() {
-	if(size > 0) {
+IteratorAndCount* Cyclogram::CmdStack::pop() {
+	if(!(this->isEmpty())) {
 		size--;
-		return *(--curr_address);
+		return --curr_element;
 	}
 	else {
 		return nullptr;
 	}
 }
 
-Command* Cyclogram::CmdStack::peek() {
-	if(size > 0) {
-		Command **tmp = curr_address;
-		return *(--tmp);
+IteratorAndCount* Cyclogram::CmdStack::peek() {
+	if(!(this->isEmpty())) {
+		IteratorAndCount *tmp = curr_element;
+		return --tmp;
 	}
 	else { 
 		return nullptr;
