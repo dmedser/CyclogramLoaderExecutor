@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include "uart_config.h"
 #include <util/delay.h>
+#include "timer.h"
 
 #define STOP  (0x7C6E)
 #define LOOP  (0x9FEE)
@@ -21,6 +22,11 @@ uint16_t Command::get2BytesForm(uint8_t *source) {
 	return *((uint16_t *)source);
 }
 
+void Command::execute() {
+	countTo(this->time_s, time_ms);
+	uart_transmit_16(this->num);
+}
+
 IteratorAndCount::IteratorAndCount(const Cyclogram::Iterator &loopEntryIterator, uint16_t countOfIterations):loopEntryIterator(loopEntryIterator), countOfIterations(countOfIterations) {}
 
 IteratorAndCount& IteratorAndCount::operator =(const IteratorAndCount& anotherIteratorAndCount) {
@@ -29,9 +35,7 @@ IteratorAndCount& IteratorAndCount::operator =(const IteratorAndCount& anotherIt
 	return *this;
 }
 
-Cyclogram::Cyclogram(void* base_address) {
-	this->base_address = base_address;
-}
+Cyclogram::Cyclogram(void* base_address):base_address(base_address) {}
 
 void Cyclogram::run(size_t cmdNo) {
 	Iterator it(base_address);
@@ -45,32 +49,35 @@ void Cyclogram::run(size_t cmdNo) {
 	
 	while((*it)->id != STOP) {
 		Command *currCmd = *it;
+		  
 		if(currCmd->id == LOOP && currCmd->get2BytesForm(currCmd->data) == START) {
-			uint16_t countOfIterations = currCmd->get2BytesForm(currCmd->getCmdDataFromOffset(LOOP_CMD_COUNT_OF_ITERATIONS_OFFSET));
-			cmdStack.push(IteratorAndCount(it, countOfIterations));
+			if(currCmd != *(cmdStack.peek()->loopEntryIterator)) {		// 
+				uint16_t countOfIterations = currCmd->get2BytesForm(currCmd->getCmdDataFromOffset(LOOP_CMD_COUNT_OF_ITERATIONS_OFFSET));
+				cmdStack.push(IteratorAndCount(it, (countOfIterations - 1)));
+			}															//
 		}
 		if(currCmd->id == LOOP && currCmd->get2BytesForm(currCmd->data) == END) {
 			IteratorAndCount *lastLoopEntry = cmdStack.peek();
 			if(lastLoopEntry->countOfIterations > 0) {
 				lastLoopEntry->countOfIterations--;
 				it = lastLoopEntry->loopEntryIterator;
-			}
+				currCmd->execute();		//
+				continue;				//
+ 			}
 			else {
-				cmdStack.pop();
+				cmdStack.pop();		
 			}
 		}
-		uart_transmit_16((*it)->num);
+		currCmd->execute();
 		++it;	
 	}
 
-	uint8_t o = 0;
+ 	uint8_t o = 0;
 	
 }
 
 
-Cyclogram::Iterator::Iterator(void *address) {
-	this->address = address;
-}
+Cyclogram::Iterator::Iterator(void *address):address(address) {}
 
 Command* Cyclogram::Iterator::operator *() {
 	return (Command*)(address);

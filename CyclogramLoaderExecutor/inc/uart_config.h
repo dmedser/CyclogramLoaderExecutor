@@ -84,7 +84,7 @@ uint8_t  init_uart(const struct uart_init* init_struct, uint32_t cpu_freq);
  * Включает UART
  * \return Код ошибки
  */
-uint8_t  enable_uart(void);
+uint8_t enable_uart(void);
 
 void uart_transmit_8(uint8_t data);
 void uart_transmit_16(uint16_t data);

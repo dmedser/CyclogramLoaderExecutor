@@ -179,6 +179,9 @@
     <Compile Include="inc\error_types.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="inc\timer.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="inc\uart_config.h">
       <SubType>compile</SubType>
     </Compile>
@@ -186,6 +189,9 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\main.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\timer.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\uart_config.cpp">

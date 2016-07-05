@@ -16,6 +16,7 @@ struct Command {
 	
 	uint8_t* getCmdDataFromOffset(uint16_t offset);
 	uint16_t get2BytesForm(uint8_t *source);
+	void execute();
 };
 
 
