@@ -4,6 +4,15 @@
  #include <stddef.h>
  #include <stdbool.h>
  
+ #define STOP  (0x7C6E)
+ #define LOOP  (0x9FEE)
+ #define START (0x28C8)
+ #define END   (0xABCD)
+ #define PAUSE (0x7AAA)
+ #define POWER (0xE1E1)
+ #define LDI   (0x9876)
+ #define ADD   (0x5432) 
+ 
 struct IteratorAndCount;
 
 struct Command {

@@ -84,8 +84,3 @@ void uart_transmit_float(float data)
 }
 */
 
-ISR(USART1_RX_vect)
-{
-
-	
-}

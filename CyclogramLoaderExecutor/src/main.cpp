@@ -3,7 +3,7 @@
 #include "error_types.h"
 #include "uart_config.h"
 
-#define BASE_SRAM 0x0204
+#define BASE_SRAM 0x0210
 #define SRAM_END  0x41FF
 
 /* Частота тактирования CPU = 16 МГц */
@@ -17,16 +17,6 @@ void check_error(uint8_t error)
 	}
 	while(true);
 }
-
-
-#define STOP  (0x7C6E)
-#define LOOP  (0x9FEE)
-#define START (0x28C8)
-#define END   (0xABCD)
-
-
-
-
 
 int main(void)
 {	
@@ -45,9 +35,46 @@ int main(void)
 		check_error(ret_val);
 	}
 	
-	volatile uint8_t *a8 = (uint8_t *)BASE_SRAM;
-	volatile uint16_t *a16 = (uint16_t *)a8;
+	volatile uint16_t *a16 = (uint16_t *)BASE_SRAM;
 	
+	*(a16++) = 1;		//num
+	*(a16++) = LDI;		//id
+	*(a16++) = 1;		//ts
+	*(a16++) = 1;		//tms
+	*(a16++) = 2;		//len
+	char *a8 = (char *)a16;
+	*(a8++) = 'B';
+	*(a8++) = 10;
+	
+	a16 = (uint16_t *)a8;
+	*(a16++) = 2;		//num
+	*(a16++) = LDI;		//id
+	*(a16++) = 1;		//ts
+	*(a16++) = 1;		//tms
+	*(a16++) = 2;		//len
+	a8 = (char *)a16;
+	*(a8++) = 'D';
+	*(a8++) = 11;
+	
+	a16 = (uint16_t *)a8;
+	*(a16++) = 3;		//num
+	*(a16++) = ADD;		//id
+	*(a16++) = 1;		//ts
+	*(a16++) = 1;		//tms
+	*(a16++) = 2;		//len
+	a8 = (char *)a16;
+	*(a8++) = 'D';
+	*(a8++) = 'B';
+	
+	a16 = (uint16_t *)a8;
+	*(a16++) = 4;    // num
+	*(a16++) = STOP; // id
+	*(a16++) = 0;    // ts
+	*(a16++) = 0;    // tms
+	*(a16++) = 0;    //len
+	
+	/*
+	// LOOP TEST
 	*(a16++) = 1;		//num
 	*(a16++) = LOOP;	//id
 	*(a16++) = 1;		//ts
@@ -96,38 +123,16 @@ int main(void)
 	*(a16++) = 1; // ts
 	*(a16++) = 1000; // tms
 	*(a16++) = 0; //len
-	
-	/*
-	*(a16++) = 3;
-	*(a16++) = 3;
-	*(a16++) = 3;
-	*(a16++) = 3;
-	*(a16++) = 3;   
-	*(a16++) = 0x3333;
-	a8 = (uint8_t *)a16;
-	*(a8++) = 0x33;
-	
-	a16 = (uint16_t *)a8;
-	*(a16++) = 4;		//num
-	*(a16++) = LOOP;	//id
-	*(a16++) = 4;		//ts
-	*(a16++) = 4;		//tms
-	*(a16++) = 2;		//len
-	*(a16++) = END;
-	
-	*(a16++) = 5;
-	*(a16++) = STOP;
-	*(a16++) = 5;
-	*(a16++) = 5;
-	*(a16++) = 0;
 	*/
+	
+	
+	
 	
 	Cyclogram cyclogram((void *)BASE_SRAM);
 	cyclogram.run();
 	
-	
 
-	
+
     while (1) 
     {
     }
