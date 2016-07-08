@@ -1,21 +1,19 @@
-#include "cyclogram.h"
-#include <stddef.h>
-#include "uart_config.h"
-#include <util/delay.h>
-#include "timer.h"
 #include "avr/interrupt.h"
+#include "uart_config.h"
+#include "cyclogram.h"
+#include "timer.h"
+#include <util/delay.h>
+#include <stddef.h>
 
+#define STACK_CAPACITY						(2)
+#define STACK_BASE							(0x15E8)
 
-
-
-#define STACK_CAPACITY	(2)
-#define STACK_BASE		(0x15E8)
 #define LOOP_CMD_COUNT_OF_ITERATIONS_OFFSET	(2) 
-#define LDI_CMD_VALUE_OFFSET	(1)
-#define ADD_CMD_SECOND_REG_OFFSET (1)
+#define LDI_CMD_VALUE_OFFSET				(1)
+#define ADD_CMD_SECOND_REG_OFFSET			(1)
 
-static uint8_t byteCounter = 0;
-static uint16_t extCmd = 0;
+volatile static uint8_t byteCounter = 0;
+volatile static uint16_t extCmd = 0;
 
 ISR(USART1_RX_vect)
 {
@@ -61,7 +59,6 @@ void Command::execute() {
 				case 'D': {RrVal = PORTD; break;}
 				default: break;
 			}
-			uint8_t o = PORTB;
 			switch(Rd) {
 				case 'B': {DDRB = 0xFF; PORTB += RrVal; break;}
 				case 'D': {DDRD = 0xFF; PORTD += RrVal; break;}
@@ -71,21 +68,26 @@ void Command::execute() {
 		} 
 		default: break;
 	}
-	volatile uint8_t o = PORTB;
+	
+	volatile uint8_t o = PORTB;	//
 	uart_transmit_16(this->num);
 }
 
 IteratorAndCount::IteratorAndCount(const Cyclogram::Iterator &loopEntryIterator, uint16_t countOfIterations):loopEntryIterator(loopEntryIterator), countOfIterations(countOfIterations) {}
 
+/*
 IteratorAndCount& IteratorAndCount::operator =(const IteratorAndCount& anotherIteratorAndCount) {
 	this->loopEntryIterator = anotherIteratorAndCount.loopEntryIterator;
 	this->countOfIterations = anotherIteratorAndCount.countOfIterations;
 	return *this;
 }
+*/
 
 Cyclogram::Cyclogram(void* base_address):base_address(base_address) {}
 
 void Cyclogram::run(size_t cmdNo) {
+	while(extCmd != START);
+	
 	Iterator it(base_address);
 	if(cmdNo != 0) {
 		while((*it)->num != cmdNo) {
@@ -127,8 +129,9 @@ void Cyclogram::run(size_t cmdNo) {
 		++it;	
 	}	
 
+	Command *CMD = *(cmdStack.peek()->loopEntryIterator);
  	volatile uint8_t o = PORTD;
-	 uint8_t a = o;
+ 	 uint8_t a = o;
 	
 }
 
@@ -144,11 +147,13 @@ Cyclogram::Iterator& Cyclogram::Iterator::operator ++() {
 	return *this;
 }
 
+/*
 Cyclogram::Iterator Cyclogram::Iterator::operator ++(int) {
 	Iterator tmp = *this;
 	++(*this);
 	return tmp;
 }
+*/
 
 Cyclogram::Iterator& Cyclogram::Iterator::operator =(const Iterator &anotherIterator) {
 	this->address = anotherIterator.address;

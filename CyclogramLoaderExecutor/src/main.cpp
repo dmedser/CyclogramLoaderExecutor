@@ -1,7 +1,7 @@
-#include <avr/io.h>
-#include "cyclogram.h"
 #include "error_types.h"
 #include "uart_config.h"
+#include "cyclogram.h"
+#include <avr/io.h>
 
 #define BASE_SRAM 0x0210
 #define SRAM_END  0x41FF
@@ -37,6 +37,8 @@ int main(void)
 	
 	volatile uint16_t *a16 = (uint16_t *)BASE_SRAM;
 	
+	/*
+	// LDI ADD TEST
 	*(a16++) = 1;		//num
 	*(a16++) = LDI;		//id
 	*(a16++) = 1;		//ts
@@ -72,6 +74,7 @@ int main(void)
 	*(a16++) = 0;    // ts
 	*(a16++) = 0;    // tms
 	*(a16++) = 0;    //len
+	*/
 	
 	/*
 	// LOOP TEST
@@ -105,11 +108,11 @@ int main(void)
 	*(a16++) = 2;
 	*(a16++) = END;
 	
-	*(a16++) = 5; // num
-	*(a16++) = 5; // id 
-	*(a16++) = 1; // ts
+	*(a16++) = 5;	 // num
+	*(a16++) = 5;	 // id 
+	*(a16++) = 1;	 // ts
 	*(a16++) = 1000; // tms
-	*(a16++) = 0; //len
+	*(a16++) = 0;	 // len
 
 	*(a16++) = 6;
 	*(a16++) = LOOP;
@@ -118,20 +121,56 @@ int main(void)
 	*(a16++) = 2;
 	*(a16++) = END;
 	
-	*(a16++) = 7; // num
-	*(a16++) = STOP; // id 
-	*(a16++) = 1; // ts
-	*(a16++) = 1000; // tms
-	*(a16++) = 0; //len
+	*(a16++) = 7;		// num
+	*(a16++) = STOP;	// id 
+	*(a16++) = 1;		// ts
+	*(a16++) = 1000;	// tms
+	*(a16++) = 0;		//len
 	*/
 	
 	
 	
+	// STACK TEST
+	*(a16++) = 1;		// num
+	*(a16++) = LOOP;	// id
+	*(a16++) = 1;		// ts
+	*(a16++) = 0;		// tms
+	*(a16++) = 4;		// len
+	*(a16++) = START;
+	*(a16++) = 0x0002;
+	
+	*(a16++) = 2;		
+	*(a16++) = 2;
+	*(a16++) = 1;
+	*(a16++) = 0;
+	*(a16++) = 4;
+	*(a16++) = 0x0fd0;
+	*(a16++) = 0x0002;
+	
+	*(a16++) = 3;
+	*(a16++) = 3;
+	*(a16++) = 1;
+	*(a16++) = 0;
+	*(a16++) = 4;
+	*(a16++) = 0x0fd0;
+	*(a16++) = 0x0002;
+	
+	*(a16++) = 4;
+	*(a16++) = LOOP;
+	*(a16++) = 1;
+	*(a16++) = 0;
+	*(a16++) = 2;
+	*(a16++) = END; 
+	
+	*(a16++) = 5;	 // num
+	*(a16++) = STOP; // id
+	*(a16++) = 1;	 // ts
+	*(a16++) = 0;	 // tms
+	*(a16++) = 0;	 // len
+	
 	
 	Cyclogram cyclogram((void *)BASE_SRAM);
 	cyclogram.run();
-	
-
 
     while (1) 
     {

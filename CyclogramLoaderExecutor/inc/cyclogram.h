@@ -4,14 +4,17 @@
  #include <stddef.h>
  #include <stdbool.h>
  
+ // id команд
  #define STOP  (0x7C6E)
  #define LOOP  (0x9FEE)
  #define START (0x28C8)
- #define END   (0xABCD)
  #define PAUSE (0x7AAA)
- #define POWER (0xE1E1)
  #define LDI   (0x9876)
- #define ADD   (0x5432) 
+ #define ADD   (0x5432)
+ 
+ // Параметры команд
+ #define END   (0xABCD)
+ 
  
 struct IteratorAndCount;
 
@@ -34,7 +37,7 @@ class Cyclogram {
 		Cyclogram(void *base_address);
 		
 		void run(size_t cmdNo = 0);
-		
+	
 		class Iterator {
 			private:
 				void *address;
@@ -42,10 +45,14 @@ class Cyclogram {
 				Iterator(void *address);
 				Command* operator *();
 				Iterator& operator ++();
-				Iterator operator ++(int);
+				//Iterator operator ++(int); // 
 				Iterator& operator =(const Iterator &anotherIterator);
 		};
+	
+	private:	
+		void *base_address;
 		
+	public:
 		class CmdStack {
 			public:
 				CmdStack(void *base, size_t capacity);
@@ -60,9 +67,6 @@ class Cyclogram {
 				size_t size;
 				IteratorAndCount *curr_element;
 		};
-		
-	private:
-		void *base_address;
 };
 
 
@@ -70,7 +74,7 @@ struct IteratorAndCount {
 	Cyclogram::Iterator loopEntryIterator;
 	uint16_t countOfIterations;
 	IteratorAndCount(const Cyclogram::Iterator &loopEntryIterator, uint16_t countOfIterations);
-	IteratorAndCount& operator =(const IteratorAndCount &anotherIteratorAndCount);
+	//IteratorAndCount& operator =(const IteratorAndCount &anotherIteratorAndCount);
 };
 
 
