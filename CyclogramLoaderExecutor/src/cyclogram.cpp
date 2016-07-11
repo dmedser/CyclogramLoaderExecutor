@@ -15,8 +15,7 @@
 volatile static uint8_t byteCounter = 0;
 volatile static uint16_t extCmd = 0;
 
-ISR(USART1_RX_vect)
-{
+ISR(USART1_RX_vect) {
 	byteCounter++;
 	if(byteCounter < sizeof(uint16_t)) {
 		extCmd = UDR1;
@@ -75,13 +74,6 @@ void Command::execute() {
 
 IteratorAndCount::IteratorAndCount(const Cyclogram::Iterator &loopEntryIterator, uint16_t countOfIterations):loopEntryIterator(loopEntryIterator), countOfIterations(countOfIterations) {}
 
-/*
-IteratorAndCount& IteratorAndCount::operator =(const IteratorAndCount& anotherIteratorAndCount) {
-	this->loopEntryIterator = anotherIteratorAndCount.loopEntryIterator;
-	this->countOfIterations = anotherIteratorAndCount.countOfIterations;
-	return *this;
-}
-*/
 
 Cyclogram::Cyclogram(void* base_address):base_address(base_address) {}
 
@@ -106,7 +98,7 @@ void Cyclogram::run(size_t cmdNo) {
 		}
 		
 		Command *currCmd = *it;
-		  
+		
 		if(currCmd->id == LOOP && currCmd->get2BytesForm(currCmd->data) == START) {
 			if(currCmd != *(cmdStack.peek()->loopEntryIterator)) {		// 
 				uint16_t countOfIterations = currCmd->get2BytesForm(currCmd->getCmdDataFromOffset(LOOP_CMD_COUNT_OF_ITERATIONS_OFFSET));
@@ -147,13 +139,6 @@ Cyclogram::Iterator& Cyclogram::Iterator::operator ++() {
 	return *this;
 }
 
-/*
-Cyclogram::Iterator Cyclogram::Iterator::operator ++(int) {
-	Iterator tmp = *this;
-	++(*this);
-	return tmp;
-}
-*/
 
 Cyclogram::Iterator& Cyclogram::Iterator::operator =(const Iterator &anotherIterator) {
 	this->address = anotherIterator.address;
