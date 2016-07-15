@@ -4,14 +4,17 @@
  #include <stddef.h>
  #include <stdbool.h>
  
- #define STOP  (0x7C6E)
+ #define STOP  (0xAF8E)
  #define LOOP  (0x9FEE)
  #define START (0x28C8)
  #define PAUSE (0x7AAA)
  #define LDI   (0x9876)
  #define ADD   (0x5432)
  #define END   (0xABCD)
+ #define SBI   (0xB981)
+ #define CBI   (0xE1F2)
  
+ #define HEADER (0x7C6E)
  
 struct IteratorAndCount;
 

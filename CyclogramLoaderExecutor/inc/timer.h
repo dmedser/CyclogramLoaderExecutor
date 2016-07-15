@@ -2,6 +2,7 @@
 #define TIMER_H_
 #include <stdint.h>
 
-void countTo(uint16_t s, uint16_t ms);
+void count_to(uint16_t s, uint16_t ms);
+void log_timer_init();
 
 #endif /* TIMER_H_ */
