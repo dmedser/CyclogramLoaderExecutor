@@ -43,15 +43,15 @@ uint16_t Command::get2BytesForm(uint8_t *source) {
 	return *((uint16_t *)source);
 }
 
+
 void Command::execute() {
-	volatile uint16_t fractPart = TCNT3;
-	volatile uint16_t integerPart = tickCount;
+	
 	count_to(time_s, time_ms);
 	uart_transmit_16(HEADER);
 	uart_transmit_16(num);
 	uart_transmit_16(id); 
-	uart_transmit_16(integerPart);
-	uart_transmit_16(fractPart); // fractional part
+	uart_transmit_16(tickCount);
+	uart_transmit_16(TCNT3); // fractional part
 	
 	switch(id) {
 		case LDI: {
@@ -104,9 +104,6 @@ void Command::execute() {
 		default: break;
 	}
 	
-	
-	
-	volatile uint8_t o = PORTB;	//
 }
 
 IteratorAndCount::IteratorAndCount(const Cyclogram::Iterator &loopEntryIterator, uint16_t countOfIterations):loopEntryIterator(loopEntryIterator), countOfIterations(countOfIterations) {}
