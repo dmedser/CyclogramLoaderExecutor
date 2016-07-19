@@ -74,6 +74,16 @@ void uart_transmit_16(uint16_t data)
 }
 
 /*
+void uart_transmit_32(uint32_t data)
+{
+	uint8_t *byte_ptr;
+	byte_ptr = (uint8_t *)&data;
+	for (uint8_t i = 0; i < sizeof(uint32_t); i++) {
+		uart_transmit_8(*byte_ptr++);
+	}
+}
+*/
+/*
 void uart_transmit_float(float data)
 {
 	uint8_t *byte_ptr;

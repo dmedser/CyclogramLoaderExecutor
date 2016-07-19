@@ -28,7 +28,7 @@ ISR(USART1_RX_vect) {
 	}
 }
 
-volatile static uint16_t tickCount = 0;
+volatile static uint32_t tickCount = 0;
 
 
 ISR(TIMER3_OVF_vect) {
@@ -43,15 +43,18 @@ uint16_t Command::get2BytesForm(uint8_t *source) {
 	return *((uint16_t *)source);
 }
 
+volatile uint16_t integerPart = 0;
+volatile uint16_t fractPart = 0;
 
 void Command::execute() {
-	
 	count_to(time_s, time_ms);
+	integerPart = tickCount;
+	fractPart = TCNT3;
 	uart_transmit_16(HEADER);
 	uart_transmit_16(num);
 	uart_transmit_16(id); 
-	uart_transmit_16(tickCount);
-	uart_transmit_16(TCNT3); // fractional part
+	uart_transmit_16(integerPart);
+	uart_transmit_16(fractPart); // fractional part
 	
 	switch(id) {
 		case LDI: {
@@ -89,7 +92,6 @@ void Command::execute() {
 				default: break;
 			}
 			break;
-			
 		} 
 		case CBI: {
 			char portName = (char)*data;
@@ -103,7 +105,7 @@ void Command::execute() {
 		}
 		default: break;
 	}
-	
+
 }
 
 IteratorAndCount::IteratorAndCount(const Cyclogram::Iterator &loopEntryIterator, uint16_t countOfIterations):loopEntryIterator(loopEntryIterator), countOfIterations(countOfIterations) {}
@@ -113,7 +115,7 @@ Cyclogram::Cyclogram(void* base_address):base_address(base_address) {}
 void Cyclogram::run(size_t cmdNo) {
 	//while(extCmd != START);
 	
- 	Iterator it(base_address);
+  	Iterator it(base_address);
 	if(cmdNo != 0) {
 		while((*it)->num != cmdNo) {
 			++it;
@@ -153,7 +155,9 @@ void Cyclogram::run(size_t cmdNo) {
 				cmdStack.pop();		
 			}
 		}
-		currCmd->execute();	
+		PORTD = 0b00010000;
+		currCmd->execute();
+		PORTD = 0;	
 		++it;	
 	}	
 	
