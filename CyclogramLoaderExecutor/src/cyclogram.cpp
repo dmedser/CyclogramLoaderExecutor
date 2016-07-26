@@ -4,6 +4,15 @@
 #include "timer.h"
 #include <util/delay.h>
 #include <stddef.h>
+#include "FreeRTOS.h"
+#include "task.h"
+
+#define EXT_CMD_BASE (0x23E) 
+
+volatile static void *extCmdBaseAddress = (void *)EXT_CMD_BASE; 
+volatile static uint16_t *extCmdWordPtr = (uint16_t *)extCmdBaseAddress;
+volatile static Command *extCmd;
+volatile static bool extCmdIsReceived = false;
 
 #define STACK_CAPACITY						(2)
 #define STACK_BASE							(0x15E8)
@@ -11,20 +20,28 @@
 #define LOOP_CMD_COUNT_OF_ITERATIONS_OFFSET	(2) 
 #define LDI_CMD_VALUE_OFFSET				(1)
 #define ADD_CMD_SECOND_REG_OFFSET			(1)
-#define BIT_CMD_BIT_NUMBER_OFFSET			(1)
+#define BITWISE_CMD_BIT_NUMBER_OFFSET		(1)
 
 volatile static uint8_t byteCounter = 0;
-volatile static uint16_t extCmd = 0;
+volatile static uint16_t extCmdWord = 0;
 
 ISR(USART1_RX_vect) {
 	byteCounter++;
 	if(byteCounter < sizeof(uint16_t)) {
-		extCmd = UDR1;
+		extCmdWord = UDR1;
 	}
 	else {
-		extCmd <<= 8;
-		extCmd |= UDR1;
-		byteCounter = 0;
+		extCmdWord <<= 8;
+		extCmdWord |= UDR1;
+		if(extCmdWord == HEADER) {
+			extCmd = (Command *)extCmdBaseAddress;
+			extCmdWordPtr = (uint16_t *)extCmdBaseAddress;
+			extCmdIsReceived = true;
+		}
+		else {
+			*(extCmdWordPtr++) = extCmdWord;
+			byteCounter = 0;
+		}
 	}
 }
 
@@ -43,24 +60,29 @@ uint16_t Command::get2BytesForm(uint8_t *source) {
 	return *((uint16_t *)source);
 }
 
-volatile uint16_t integerPart = 0;
+volatile uint32_t integerPart = 0;
 volatile uint16_t fractPart = 0;
 
 void Command::execute() {
-	count_to(time_s, time_ms);
-	integerPart = tickCount;
-	fractPart = TCNT3;
+	
+	//count_to(time_s, time_ms);
+	TickType_t tickToDelay = time_s*1000 + time_ms;
+	vTaskDelay(tickToDelay);
+	//integerPart = tickCount;
+	//fractPart = TCNT3;
+	/*
 	uart_transmit_16(HEADER);
 	uart_transmit_16(num);
 	uart_transmit_16(id); 
-	uart_transmit_16(integerPart);
-	uart_transmit_16(fractPart); // fractional part
+	uart_transmit_16(fractPart); 
+	uart_transmit_32(integerPart);
+	*/
 	
 	switch(id) {
 		case LDI: {
 			char portName = (char)*(data);
 			uint8_t val = *(getCmdDataFromOffset(LDI_CMD_VALUE_OFFSET));
-			switch(portName) {
+			switch(portName) { 
 				case 'B': {DDRB = 0xFF; PORTB = val; break;}
 				case 'F': {DDRF = 0xFF; PORTF = val; break;}
 				default: break;
@@ -85,7 +107,7 @@ void Command::execute() {
 		}
 		case SBI: {
 			char portName = (char)*data;
-			uint8_t bitNo = *getCmdDataFromOffset(BIT_CMD_BIT_NUMBER_OFFSET);
+			uint8_t bitNo = *getCmdDataFromOffset(BITWISE_CMD_BIT_NUMBER_OFFSET);
 			switch(portName) {
 				case 'D': {DDRD = 0xFF; PORTD |= (1 << bitNo); break;}
 				case 'F': {DDRF = 0xFF; PORTF |= (1 << bitNo); break;}
@@ -95,7 +117,7 @@ void Command::execute() {
 		} 
 		case CBI: {
 			char portName = (char)*data;
-			uint8_t bitNo = *getCmdDataFromOffset(BIT_CMD_BIT_NUMBER_OFFSET);
+			uint8_t bitNo = *getCmdDataFromOffset(BITWISE_CMD_BIT_NUMBER_OFFSET);
 			switch(portName) {
 				case 'D': {DDRD = 0xFF; PORTD &= ~(1 << bitNo); break;}
 				case 'F': {DDRF = 0xFF; PORTF &= ~(1 << bitNo); break;}
@@ -112,26 +134,32 @@ IteratorAndCount::IteratorAndCount(const Cyclogram::Iterator &loopEntryIterator,
 
 Cyclogram::Cyclogram(void* base_address):base_address(base_address) {}
 
-void Cyclogram::run(size_t cmdNo) {
-	//while(extCmd != START);
+void Cyclogram::run() {
+	//while(!extCmdIsReceived);		//
+	//if(extCmd->id == START) {		//
+	//	extCmdIsReceived = false;	//
 	
   	Iterator it(base_address);
-	if(cmdNo != 0) {
-		while((*it)->num != cmdNo) {
-			++it;
-		}
-	}
+	//while((*it)->num != extCmd->num) {
+	//	++it;
+	//}
 	
+	uart_transmit_16(0x1234);
 	CmdStack cmdStack((void *)STACK_BASE, STACK_CAPACITY);
 	
 	while((*it)->id != STOP) {
 		
-		if(extCmd == STOP) {
+		/*
+		if(extCmdIsReceived) {
+			switch(extCmd->id) {
+				case STOP: {break}
+			}
 			break;
 		}
-		if(extCmd == PAUSE) {
-			while(extCmd != START);
+		if(extCmdWord == PAUSE) {
+			while(extCmdWord != START);
 		}
+		*/
 		
 		Command *currCmd = *it;
 		uint16_t currCmdId = currCmd->id; 
@@ -161,6 +189,10 @@ void Cyclogram::run(size_t cmdNo) {
 		++it;	
 	}	
 	
+	uart_transmit_16(0x5678);
+	
+	//}//
+	//vTaskSuspend(NULL);
 }
 
 

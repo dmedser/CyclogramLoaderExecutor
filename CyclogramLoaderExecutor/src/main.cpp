@@ -3,8 +3,10 @@
 #include "cyclogram.h"
 #include <avr/io.h>
 #include "timer.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
-#define BASE_SRAM 0x0210
+#define CYCLOGRAM_BASE_ADDRESS 0x3F0
 #define SRAM_END  0x41FF
 
 /* Частота тактирования CPU = 16 МГц */
@@ -17,6 +19,17 @@ void check_error(uint8_t error)
 		return;
 	}
 	while(true);
+}
+
+void vStartCyclogram(void *pvParameters) {
+	Cyclogram *cyclogram = (Cyclogram *)pvParameters;
+	cyclogram->run();
+}
+
+void vWaitSomeTicks(void * pvParameters) {
+	TickType_t ticksToDelay = *((TickType_t *)pvParameters); 
+	vTaskDelay(ticksToDelay);
+	uart_transmit_16(0xBBBB);
 }
 
 int main(void)
@@ -36,7 +49,7 @@ int main(void)
 		check_error(ret_val);
 	}
 
-	volatile uint16_t *a16 = (uint16_t *)BASE_SRAM;
+	volatile uint16_t *a16 = (uint16_t *)CYCLOGRAM_BASE_ADDRESS;
 	
 	DDRD = 0xFF;
 
@@ -45,7 +58,7 @@ int main(void)
 	// LOOP TEST
 	*(a16++) = 1;		// num
 	*(a16++) = LOOP;	// id
-	*(a16++) = 0;		// ts
+	*(a16++) = 1;		// ts
 	*(a16++) = 0;	// tms
 	*(a16++) = 4;		// len 
 	*(a16++) = START;
@@ -53,7 +66,7 @@ int main(void)
 	
 	*(a16++) = 2;
 	*(a16++) = 0xB888;
-	*(a16++) = 0;
+	*(a16++) = 1;
 	*(a16++) = 0;
 	*(a16++) = 4;
 	*(a16++) = 0xC199;
@@ -61,7 +74,7 @@ int main(void)
 	
 	*(a16++) = 3;		// num
 	*(a16++) = 0xA999;	// id
-	*(a16++) = 0;		// ts
+	*(a16++) = 1;		// ts
 	*(a16++) = 0;	// tms
 	*(a16++) = 2;		// len
 	char *a8 = (char *)a16;
@@ -71,7 +84,7 @@ int main(void)
 	a16 = (uint16_t *)a8;
 	*(a16++) = 4;		// num
 	*(a16++) = 0xA998;	// id
-	*(a16++) = 0;		// ts
+	*(a16++) = 1;		// ts
 	*(a16++) = 0;	// tms
 	*(a16++) = 2;		// len
 	a8 = (char *)a16;
@@ -81,45 +94,36 @@ int main(void)
 	a16 = (uint16_t *)a8;
 	*(a16++) = 5;
 	*(a16++) = 0xFFFF;
-	*(a16++) = 0;
+	*(a16++) = 1;
 	*(a16++) = 0;
 	*(a16++) = 2;
 	*(a16++) = 0xFEEE;
 	
 	*(a16++) = 6;
 	*(a16++) = LOOP;
-	*(a16++) = 0;
+	*(a16++) = 1;
 	*(a16++) = 0;
 	*(a16++) = 2;
 	*(a16++) = END;
 	
 	*(a16++) = 8;		// num
 	*(a16++) = STOP;	// id 
-	
-	
 
+	log_timer_init();	
 	
-	/*
-	*(a16++) = 1;		// num
-	*(a16++) = 1;		// id
-	*(a16++) = 120;		// ts
-	*(a16++) = 0;		// tms
-	*(a16++) = 4;		// len
-	*(a16++) = 0xAAAA;
-	*(a16++) = 0x000A;
+	Cyclogram cyclogram((void *)CYCLOGRAM_BASE_ADDRESS);
 	
-	*(a16++) = 2;		// num
-	*(a16++) = STOP;	// id
-	*/
-	
-
-	
-	Cyclogram cyclogram((void *)BASE_SRAM);
-	delay_timer_init();
-	log_timer_init();
+	TickType_t ticksToDelay = 2000;
+	 
+	delay_timer_init(); 
 	cyclogram.run();
+	xTaskCreate(vStartCyclogram, "StartCyclogram", configMINIMAL_STACK_SIZE, &cyclogram, 1, NULL);
+	//xTaskCreate(vWaitSomeTicks, "WaitSomeTicks", configMINIMAL_STACK_SIZE, &ticksToDelay, );
+	vTaskStartScheduler();
 
-    while (true); 
+    while (true) {
+		
+	} 
 }
 
  

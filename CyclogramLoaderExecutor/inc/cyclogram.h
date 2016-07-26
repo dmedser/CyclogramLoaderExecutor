@@ -38,7 +38,7 @@ class Cyclogram {
 	public:
 		Cyclogram(void *base_address);
 		
-		void run(size_t cmdNo = 0);
+		void run();
 		
 	private:	
 		void *base_address;
@@ -60,12 +60,12 @@ class Cyclogram {
 		
 		class Iterator {
 			private:
-			void *address;
+				void *address;
 			public:
-			Iterator(void *address);
-			Command* operator *();
-			Iterator& operator ++();
-			Iterator& operator =(const Iterator &anotherIterator);
+				Iterator(void *address);
+				Command* operator *();
+				Iterator& operator ++();
+				Iterator& operator =(const Iterator &anotherIterator);
 		};
 };
 
