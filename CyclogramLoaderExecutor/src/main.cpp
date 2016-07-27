@@ -3,9 +3,7 @@
 #include "cyclogram.h"
 #include <avr/io.h>
 #include "timer.h"
-#include "FreeRTOS.h"
-#include "task.h"
-
+#include "some_task.h"
 #define CYCLOGRAM_BASE_ADDRESS 0x3F0
 #define SRAM_END  0x41FF
 
@@ -19,17 +17,6 @@ void check_error(uint8_t error)
 		return;
 	}
 	while(true);
-}
-
-void vStartCyclogram(void *pvParameters) {
-	Cyclogram *cyclogram = (Cyclogram *)pvParameters;
-	cyclogram->run();
-}
-
-void vWaitSomeTicks(void * pvParameters) {
-	TickType_t ticksToDelay = *((TickType_t *)pvParameters); 
-	vTaskDelay(ticksToDelay);
-	uart_transmit_16(0xBBBB);
 }
 
 int main(void)
@@ -109,20 +96,13 @@ int main(void)
 	*(a16++) = 8;		// num
 	*(a16++) = STOP;	// id 
 
-	log_timer_init();	
-	
 	Cyclogram cyclogram((void *)CYCLOGRAM_BASE_ADDRESS);
 	
-	TickType_t ticksToDelay = 2000;
-	 
-	delay_timer_init(); 
-	cyclogram.run();
-	xTaskCreate(vStartCyclogram, "StartCyclogram", configMINIMAL_STACK_SIZE, &cyclogram, 1, NULL);
-	//xTaskCreate(vWaitSomeTicks, "WaitSomeTicks", configMINIMAL_STACK_SIZE, &ticksToDelay, );
-	vTaskStartScheduler();
+	msec_timer_init(); 
 
     while (true) {
-		
+		cyclogram.run();
+		meander();
 	} 
 }
 

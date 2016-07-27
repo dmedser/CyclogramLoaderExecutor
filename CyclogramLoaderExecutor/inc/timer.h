@@ -2,9 +2,8 @@
 #define TIMER_H_
 #include <stdint.h>
 
-void delay_timer_init();
-//void count_to(uint16_t s, uint16_t ms);
-void log_timer_init();
-void vCmdDelayTask(void *pvParameters);
+void msec_timer_init();
+
+extern volatile uint32_t msecCount;
 
 #endif /* TIMER_H_ */

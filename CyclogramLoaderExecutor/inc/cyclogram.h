@@ -41,8 +41,6 @@ class Cyclogram {
 		void run();
 		
 	private:	
-		void *base_address;
-		
 		class CmdStack {
 			public:
 				CmdStack(void *base, size_t capacity);
@@ -67,6 +65,10 @@ class Cyclogram {
 				Iterator& operator ++();
 				Iterator& operator =(const Iterator &anotherIterator);
 		};
+		
+		void *base_address;
+		Iterator it;
+		CmdStack cmdStack;
 };
 
 
@@ -75,7 +77,5 @@ struct IteratorAndCount {
 	uint16_t countOfIterations;
 	IteratorAndCount(const Cyclogram::Iterator &loopEntryIterator, uint16_t countOfIterations);
 };
-
-
 
 #endif /* CYCLOGRAM_H_ */
