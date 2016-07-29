@@ -10,8 +10,7 @@ typedef enum MeanderState : uint8_t {
 volatile static MeanderState currMeanderState = MEANDER_DELAY_START;
 volatile static uint32_t startMeanderDelayMsecCount;
 
-#define MEANDER_MS_PERIOD (5)
-
+#define MEANDER_PERIOD_MS (5)
 
 void meander() {
 	switch(currMeanderState) {
@@ -21,7 +20,7 @@ void meander() {
 			break;
 		}
 		case MEANDER_DELAYING: {
-			if((msecCount - startMeanderDelayMsecCount) >= MEANDER_MS_PERIOD) {
+			if((msecCount - startMeanderDelayMsecCount) >= MEANDER_PERIOD_MS) {
 				if(PORTD & (1 << PD4)) {
 					PORTD &= ~(1 << PD4);
 				}

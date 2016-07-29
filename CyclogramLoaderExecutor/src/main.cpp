@@ -4,6 +4,8 @@
 #include <avr/io.h>
 #include "timer.h"
 #include "some_task.h"
+#include "commands.h"
+
 #define CYCLOGRAM_BASE_ADDRESS 0x3F0
 #define SRAM_END  0x41FF
 
@@ -18,6 +20,7 @@ void check_error(uint8_t error)
 	}
 	while(true);
 }
+
 
 int main(void)
 {	
@@ -37,66 +40,75 @@ int main(void)
 	}
 
 	volatile uint16_t *a16 = (uint16_t *)CYCLOGRAM_BASE_ADDRESS;
+
 	
-	DDRD = 0xFF;
-
-
+		
 	
 	// LOOP TEST
 	*(a16++) = 1;		// num
-	*(a16++) = LOOP;	// id
+	*(a16++) = ID_LOOP;	// id
 	*(a16++) = 1;		// ts
-	*(a16++) = 0;	// tms
+	*(a16++) = 0;		// tms
 	*(a16++) = 4;		// len 
-	*(a16++) = START;
-	*(a16++) = 0x0032;
+	*(a16++) = PARAM_LOOP_START;
+	*(a16++) = 0x0002;
 	
 	*(a16++) = 2;
-	*(a16++) = 0xB888;
-	*(a16++) = 1;
-	*(a16++) = 0;
-	*(a16++) = 4;
-	*(a16++) = 0xC199;
-	*(a16++) = 0x0001;
-	
-	*(a16++) = 3;		// num
-	*(a16++) = 0xA999;	// id
+	*(a16++) = ID_LDI;
 	*(a16++) = 1;		// ts
-	*(a16++) = 0;	// tms
+	*(a16++) = 0;		// tms
 	*(a16++) = 2;		// len
 	char *a8 = (char *)a16;
 	*(a8++) = 'B';
 	*(a8++) = 1;
 	
 	a16 = (uint16_t *)a8;
-	*(a16++) = 4;		// num
-	*(a16++) = 0xA998;	// id
+	*(a16++) = 3;		// num
+	*(a16++) = ID_ADD;	// id
 	*(a16++) = 1;		// ts
-	*(a16++) = 0;	// tms
+	*(a16++) = 0;		// tms
+	*(a16++) = 2;		// len
+	a8 = (char *)a16;
+	*(a8++) = 'D';
+	*(a8++) = 'B';
+	
+	a16 = (uint16_t *)a8;
+	*(a16++) = 4;		// num
+	*(a16++) = ID_SBI;	// id
+	*(a16++) = 1;		// ts
+	*(a16++) = 0;		// tms
 	*(a16++) = 2;		// len
 	a8 = (char *)a16;
 	*(a8++) = 'F';
 	*(a8++) = 1;
 	
 	a16 = (uint16_t *)a8;
-	*(a16++) = 5;
-	*(a16++) = 0xFFFF;
-	*(a16++) = 1;
-	*(a16++) = 0;
-	*(a16++) = 2;
-	*(a16++) = 0xFEEE;
+	*(a16++) = 5;		// num
+	*(a16++) = ID_CBI;	// id
+	*(a16++) = 1;		// ts
+	*(a16++) = 0;		// tms
+	*(a16++) = 2;		// len
+	a8 = (char *)a16;
+	*(a8++) = 'F';
+	*(a8++) = 1;
 	
+	a16 = (uint16_t *)a8;
 	*(a16++) = 6;
-	*(a16++) = LOOP;
+	*(a16++) = ID_LOOP;
 	*(a16++) = 1;
 	*(a16++) = 0;
 	*(a16++) = 2;
-	*(a16++) = END;
+	*(a16++) = PARAM_LOOP_END;
 	
-	*(a16++) = 8;		// num
-	*(a16++) = STOP;	// id 
+	*(a16++) = 7;		// num
+	*(a16++) = ID_STOP;	// id 
+	
+	
+	
+	CmdImplementation cmds[COMMANDS_NUMBER] = {&ldi, &add, &sbi, &cbi};
 
-	Cyclogram cyclogram((void *)CYCLOGRAM_BASE_ADDRESS);
+	Cyclogram cyclogram((void *)CYCLOGRAM_BASE_ADDRESS, cmds);
+	
 	
 	msec_timer_init(); 
 

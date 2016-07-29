@@ -3,20 +3,24 @@
  #include <stdint.h>
  #include <stddef.h>
  #include <stdbool.h>
- 
- #define STOP  (0xAF8E)
- #define LOOP  (0x9FEE)
- #define START (0x28C8)
- #define PAUSE (0x7AAA)
- #define LDI   (0x9876)
- #define ADD   (0x5432)
- #define END   (0xABCD)
- #define SBI   (0xB981)
- #define CBI   (0xE1F2)
+
+ #define ID_START			(0)
+ #define ID_STOP			(1)
+ #define ID_PAUSE			(2)
+ #define ID_LOOP			(3)
+ #define ID_LDI				(4)
+ #define ID_ADD				(5)
+ #define ID_SBI				(6)
+ #define ID_CBI				(7)
+ #define PARAM_LOOP_START	(0x28C8)
+ #define PARAM_LOOP_END		(0xABCD)
  
  #define HEADER (0x7C6E)
  
+ typedef void (*CmdImplementation)(uint8_t *);
+
 struct IteratorAndCount;
+class Cyclogram;
 
 struct Command {
 	uint16_t num;
@@ -28,16 +32,15 @@ struct Command {
 	
 	uint8_t* getCmdDataFromOffset(uint16_t offset);
 	uint16_t get2BytesForm(uint8_t *source);
-	void execute();
+	void execute(Cyclogram *cyclogram);
 };
 
 
 class Cyclogram {
 	friend struct IteratorAndCount;
-	
+	friend struct Command; 
 	public:
-		Cyclogram(void *base_address);
-		
+		Cyclogram(void *baseAddress, CmdImplementation *cmdsImp);
 		void run();
 		
 	private:	
@@ -66,9 +69,11 @@ class Cyclogram {
 				Iterator& operator =(const Iterator &anotherIterator);
 		};
 		
-		void *base_address;
+		void *baseAddress;
 		Iterator it;
 		CmdStack cmdStack;
+		/* ”казатель на первый элемент массива из void функций с аргументом uint8_t* */
+		CmdImplementation *cmdsImp;
 };
 
 
