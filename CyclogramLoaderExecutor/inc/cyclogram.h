@@ -7,11 +7,12 @@
  #define ID_START			(0)
  #define ID_STOP			(1)
  #define ID_PAUSE			(2)
- #define ID_LOOP			(3)
- #define ID_LDI				(4)
- #define ID_ADD				(5)
- #define ID_SBI				(6)
- #define ID_CBI				(7)
+ #define ID_RESUME			(3)
+ #define ID_LOOP			(4)
+ #define ID_LDI				(5)
+ #define ID_ADD				(6)
+ #define ID_SBI				(7)
+ #define ID_CBI				(8)
  #define PARAM_LOOP_START	(0x28C8)
  #define PARAM_LOOP_END		(0xABCD)
  
@@ -31,7 +32,8 @@ struct Command {
 	uint8_t data[];
 	
 	uint8_t* getCmdDataFromOffset(uint16_t offset);
-	uint16_t get2BytesForm(uint8_t *source);
+	uint16_t get2BytesFrom(uint8_t *source);
+	uint32_t getMsecToDelay();
 	void execute(Cyclogram *cyclogram);
 };
 
@@ -42,6 +44,7 @@ class Cyclogram {
 	public:
 		Cyclogram(void *baseAddress, CmdImplementation *cmdsImp);
 		void run();
+		void* getBaseAddress();
 		
 	private:	
 		class CmdStack {
@@ -56,7 +59,7 @@ class Cyclogram {
 				IteratorAndCount *base;
 				size_t capacity;
 				size_t size;
-				IteratorAndCount *curr_element;
+				IteratorAndCount *currElement;
 		};
 		
 		class Iterator {
@@ -67,6 +70,7 @@ class Cyclogram {
 				Command* operator *();
 				Iterator& operator ++();
 				Iterator& operator =(const Iterator &anotherIterator);
+				Iterator& setTo(void *address);
 		};
 		
 		void *baseAddress;

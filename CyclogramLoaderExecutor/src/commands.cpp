@@ -1,4 +1,6 @@
 #include "commands.h"
+#include "cyclogram.h"
+#include "uart_config.h"
 #include <avr/io.h>
 #define CMD_LDI_VALUE_OFFSET			(1)
 #define CMD_ADD_SECOND_REG_OFFSET		(1)
@@ -13,6 +15,7 @@ void ldi(uint8_t *paramPtr) {
 		case 'D': {DDRD = 0xFF; PORTD = val; break;}
 		default: break;
 	}
+	uart_transmit_16(ID_LDI);
 }
 
 /* ADD Rd, Rr  =  Rd <- Rd + Rr */
@@ -30,6 +33,7 @@ void add(uint8_t *paramPtr) {
 		case 'D': {DDRD = 0xFF; PORTD += RrVal; break;}
 		default: break;
 	}
+	uart_transmit_16(ID_ADD);
 }
 
 void sbi(uint8_t *paramPtr) {
@@ -40,6 +44,7 @@ void sbi(uint8_t *paramPtr) {
 	    case 'F': {DDRF = 0xFF; PORTF |= (1 << bitNo); break;}
 	    default: break;
 	}
+	uart_transmit_16(ID_SBI);
 }
 
 void cbi(uint8_t *paramPtr) {
@@ -50,5 +55,6 @@ void cbi(uint8_t *paramPtr) {
 		case 'F': {DDRF = 0xFF; PORTF &= ~(1 << bitNo); break;}
 		default: break;
 	}	
+	uart_transmit_16(ID_CBI);
 }
  
