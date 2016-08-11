@@ -5,6 +5,7 @@
 #include <avr/interrupt.h>
 
 
+
 uint8_t init_uart(const struct uart_init* init_struct, uint32_t uart_freq)
 {
 	RT_ASSERT(init_struct != NULL, ERROR_TYPE_NULL_PTR);
@@ -94,3 +95,30 @@ void uart_transmit_float(float data)
 }
 */
 
+#define HEADER	(0x7C6E)
+
+/* Назначение переменных описано в заголовочном файле ядра - cyclogram.h */
+volatile uint16_t *extCmdWordPtr = (uint16_t *)EXT_CMD_BASE_ADDRESS;
+volatile bool extCmdIsReceived = false;
+volatile Command *extCmd;
+
+volatile uint8_t byteCounter = 0;
+volatile uint16_t extCmdWord;
+
+ISR(USART1_RX_vect) {
+	byteCounter++;
+	if(byteCounter < sizeof(uint16_t)) {
+		extCmdWord = UDR1;
+	}
+	else {
+		extCmdWord <<= 8;
+		extCmdWord |= UDR1;
+		if(extCmdWord == HEADER) {
+			extCmdIsReceived = true;
+		}
+		else {
+			*(extCmdWordPtr++) = extCmdWord;
+		}
+		byteCounter = 0;
+	}
+}

@@ -5,13 +5,9 @@
 #include "timer.h"
 #include <stddef.h>
 
-#define CMD_STACK_CAPACITY						(2)
-#define CMD_STACK_BASE							(0x15DC)
-#define EXT_CMD_BASE							(0x02F8)
-#define LOOP_CMD_COUNT_OF_ITERATIONS_OFFSET		(2)
-#define COUNT_OF_PRESET_COMMANDS				(5)
-
+/* Состояния выполнения циклограммы */
 typedef enum CyclogramState : uint8_t {
+	STATE_EMPTY,
 	STATE_SAVE_DELAY_CONTEXT,
 	STATE_RESTORE_DELAY_CONTEXT,
 	STATE_EXT_CMD_PREPARE,
@@ -24,44 +20,23 @@ typedef enum CyclogramState : uint8_t {
 	STATE_CYCLOGRAM_STOP
 } CyclogramState;
 
-volatile static CyclogramState currCyclogramState = STATE_CYCLOGRAM_STOP;
-volatile static CyclogramState cyclogramStateBuf;
+/* Текущее состояние циклограммы */
+volatile static CyclogramState currCyclogramState = STATE_EMPTY;
+/* Буфер состояния циклограммы, сохраняет состояние перед приходом внешней команды */
+volatile static CyclogramState cyclogramStateBuf = STATE_EMPTY;
+
 volatile static CyclogramState cyclogramStateBeforePause;
 
-
-volatile static void *extCmdBaseAddress = (void *)EXT_CMD_BASE;
-volatile static uint16_t *extCmdWordPtr = (uint16_t *)extCmdBaseAddress;
-volatile static Command *extCmd;
-volatile static bool extCmdIsReceived = false;
-
-volatile static uint8_t byteCounter = 0;
-volatile static uint16_t extCmdWord;
-
+/* Значение счетчика миллисекунд в момент начала задержки выполнения команды */
 volatile static uint32_t delayStart;
+/* Число миллисекунд, на которое надо задержать выполнение команды */
 volatile static uint32_t msecToDelay;
 
+/* Буферный контекст задержки для восстановления после паузы */
 volatile static uint32_t msecCountBuf;
 volatile static uint32_t delayStartBuf;
 volatile static uint32_t msecToDelayBuf;
 
-
-ISR(USART1_RX_vect) {
-	byteCounter++;
-	if(byteCounter < sizeof(uint16_t)) {
-		extCmdWord = UDR1;
-	}
-	else {
-		extCmdWord <<= 8;
-		extCmdWord |= UDR1;
-		if(extCmdWord == HEADER) {
-			extCmdIsReceived = true;
-		}
-		else {
-			*(extCmdWordPtr++) = extCmdWord;
-		}
-		byteCounter = 0;
-	}
-}
 
 uint8_t * Command::getCmdDataFromOffset(uint16_t offset) {
 	return (this->data + offset);
@@ -76,13 +51,14 @@ uint32_t Command::getMsecToDelay() {
 }
 
 void Command::execute(Cyclogram *cyclogram) {
+	/* Определение ID команды, в case описаны реализации предустановленных команд, в default - вызов реализации команды из внешнего файла */
 	switch(id) {
-		case ID_START: {
+		case CMD_ID_START: {
 			Command *currCyclogramCmd = *(cyclogram->it);
 			uint16_t currCyclogramCmdNum = currCyclogramCmd->num;
 			uint16_t currCyclogramCmdId = currCyclogramCmd->id;
 			uint16_t startCmdNum = get2BytesFrom(data);
-			if(currCyclogramCmdNum != startCmdNum && currCyclogramCmdId != ID_STOP) {
+			if(currCyclogramCmdNum != startCmdNum && currCyclogramCmdId != CMD_ID_STOP) {
 				++(cyclogram->it);
 			}
 			else {
@@ -91,19 +67,24 @@ void Command::execute(Cyclogram *cyclogram) {
 			uart_transmit_16(id);
 			break;
 		}
-		case ID_STOP: {
+		case CMD_ID_STOP: {
 			cyclogram->it.setTo(cyclogram->getBaseAddress());
 			currCyclogramState = STATE_CYCLOGRAM_STOP;
 			uart_transmit_16(id);
 			break;
 		}
-		case ID_PAUSE: {
-			uart_transmit_16(id);
-			cyclogramStateBeforePause = cyclogramStateBuf;
+		case CMD_ID_PAUSE: {
+			if(cyclogramStateBuf != STATE_EMPTY) {
+				cyclogramStateBeforePause = cyclogramStateBuf;
+			}
+			else {
+				cyclogramStateBeforePause = currCyclogramState;
+			}
 			currCyclogramState = STATE_CYCLOGRAM_PAUSE;
+			uart_transmit_16(id);
 			break;
 		}
-		case ID_RESUME: {
+		case CMD_ID_RESUME: {
 			if(cyclogramStateBeforePause == STATE_INT_CMD_DELAY) {
 				currCyclogramState = STATE_RESTORE_DELAY_CONTEXT;
 			}
@@ -113,14 +94,14 @@ void Command::execute(Cyclogram *cyclogram) {
 			uart_transmit_16(id);
 			break;	
 		}
-		case ID_LOOP: {
+		case CMD_ID_LOOP: {
 			uint16_t currCmdFstParam = get2BytesFrom(data);
 			switch(currCmdFstParam) {
-				case PARAM_LOOP_START: {
+				case CMD_PARAM_LOOP_START: {
 					/* Чтобы при возврате на точку входа в цикл команда не заносилась в стек снова */
 					Command *lastCmdOnStack = *(cyclogram->cmdStack.peek()->loopEntryIterator);
 					if(this != lastCmdOnStack) {
-						uint16_t countOfIterations = get2BytesFrom(getCmdDataFromOffset(LOOP_CMD_COUNT_OF_ITERATIONS_OFFSET));
+						uint16_t countOfIterations = get2BytesFrom(getCmdDataFromOffset(CMD_OFFSET_LOOP_COUNT_OF_ITERATIONS));
 						cyclogram->cmdStack.push(IteratorAndCount(cyclogram->it, (countOfIterations - 1)));
 					}
 					++(cyclogram->it);
@@ -128,7 +109,7 @@ void Command::execute(Cyclogram *cyclogram) {
 					uart_transmit_16(id);
 					break;
 				}
-				case PARAM_LOOP_END: {
+				case CMD_PARAM_LOOP_END: {
 					IteratorAndCount *lastLoopEntry = cyclogram->cmdStack.peek();
 					if(lastLoopEntry->countOfIterations > 0) {
 						lastLoopEntry->countOfIterations--;
@@ -164,12 +145,14 @@ IteratorAndCount::IteratorAndCount(const Cyclogram::Iterator &loopEntryIterator,
 Cyclogram::Cyclogram(void *baseAddress, CmdImplementation *cmdsImp):
 	baseAddress(baseAddress),
 	it(baseAddress), 
-	cmdStack((void *)CMD_STACK_BASE, CMD_STACK_CAPACITY),
+	cmdStack((void *)CMD_STACK_BASE_ADDRESS, CMD_STACK_CAPACITY),
 	cmdsImp(cmdsImp)
 	{}
 
 void Cyclogram::run() {
+	/* Сначала проверяем, пришла ли внешняя команда */
 	if(extCmdIsReceived) {
+		/* Если внешняя команда прервала задержку внутренней команды - сохраняем контекст этой задержки */
 		extCmdIsReceived = false;
 		cyclogramStateBuf = currCyclogramState;
 		if(currCyclogramState == STATE_INT_CMD_DELAY) {
@@ -179,6 +162,7 @@ void Cyclogram::run() {
 			currCyclogramState = STATE_EXT_CMD_PREPARE;
 		}
 	}
+	/* Проверка текущего состояния циклограммы */
 	switch(currCyclogramState) {
 		case STATE_SAVE_DELAY_CONTEXT: {
 			msecCountBuf = msecCount;
@@ -188,8 +172,8 @@ void Cyclogram::run() {
 			break;
 		}
 		case STATE_EXT_CMD_PREPARE: {
-			extCmd = (Command *)extCmdBaseAddress;
-			extCmdWordPtr = (uint16_t *)extCmdBaseAddress;
+			extCmd = (Command *)EXT_CMD_BASE_ADDRESS;
+			extCmdWordPtr = (uint16_t *)EXT_CMD_BASE_ADDRESS;
 			msecToDelay = ((Command *)extCmd)->getMsecToDelay();
 			delayStart = msecCount;
 			currCyclogramState = STATE_EXT_CMD_DELAY;
@@ -255,8 +239,6 @@ Cyclogram::Iterator& Cyclogram::Iterator::operator ++() {
 	return *this;
 }
 
-
-
 Cyclogram::Iterator& Cyclogram::Iterator::operator =(const Iterator &anotherIterator) {
 	this->address = anotherIterator.address;
 	return *this;
@@ -267,7 +249,6 @@ Cyclogram::Iterator& Cyclogram::Iterator::setTo(void *address) {
 	this->address = address;
 	return *this;
 }
-
 
 Cyclogram::CmdStack::CmdStack(void *base, size_t capacity) {
 	this->base = (IteratorAndCount *)base;
@@ -286,7 +267,7 @@ bool Cyclogram::CmdStack::isFull() {
 
 void Cyclogram::CmdStack::push(const IteratorAndCount &newElement) {
 	if (!(this->isFull())) {
-		*(currElement++) = newElement;
+		*(currElement--) = newElement;
 		size++;
 	}
 }
@@ -294,7 +275,7 @@ void Cyclogram::CmdStack::push(const IteratorAndCount &newElement) {
 IteratorAndCount* Cyclogram::CmdStack::pop() {
 	if(!(this->isEmpty())) {
 		size--;
-		return --currElement;
+		return ++currElement;
 	}
 	else {
 		return nullptr;
@@ -304,7 +285,7 @@ IteratorAndCount* Cyclogram::CmdStack::pop() {
 IteratorAndCount* Cyclogram::CmdStack::peek() {
 	if(!(this->isEmpty())) {
 		IteratorAndCount *tmp = currElement;
-		return --tmp;
+		return ++tmp;
 	}
 	else { 
 		return nullptr;

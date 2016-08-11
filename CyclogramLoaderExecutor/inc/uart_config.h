@@ -3,6 +3,7 @@
 
 #include "stdint.h"
 #include "error_types.h"
+#include "cyclogram.h"
 
 /**
  * \ingroup config
@@ -89,5 +90,14 @@ uint8_t enable_uart(void);
 void uart_transmit_8(uint8_t data);
 void uart_transmit_16(uint16_t data);
 void uart_transmit_32(uint32_t data);
+
+
+
+extern volatile uint16_t *extCmdWordPtr;
+extern volatile bool extCmdIsReceived;
+extern volatile Command *extCmd;
+
+extern volatile uint8_t byteCounter;
+extern volatile uint16_t extCmdWord;
 
 #endif

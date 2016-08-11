@@ -1,13 +1,11 @@
 #include "error_types.h"
 #include "uart_config.h"
 #include "cyclogram.h"
-#include <avr/io.h>
-#include "timer.h"
 #include "some_task.h"
 #include "commands.h"
+#include "timer.h"
+#include <avr/io.h>
 
-#define CYCLOGRAM_BASE_ADDRESS 0x3F0
-#define SRAM_END  0x41FF
 
 /* Частота тактирования CPU = 16 МГц */
 #define F_CPU (16000000)
@@ -38,23 +36,20 @@ int main(void)
 		ret_val = enable_uart();
 		check_error(ret_val);
 	}
-
-	volatile uint16_t *a16 = (uint16_t *)CYCLOGRAM_BASE_ADDRESS;
-
 	
-		
+	volatile uint16_t *a16 = (uint16_t *)CYCLOGRAM_BASE_ADDRESS;
 	
 	// LOOP TEST
 	*(a16++) = 1;		// num
-	*(a16++) = ID_LOOP;	// id
+	*(a16++) = CMD_ID_LOOP;	// id
 	*(a16++) = 1;		// ts
 	*(a16++) = 0;		// tms
 	*(a16++) = 4;		// len 
-	*(a16++) = PARAM_LOOP_START;
-	*(a16++) = 0x0002;
+	*(a16++) = CMD_PARAM_LOOP_START;
+	*(a16++) = 0x0004;
 	
 	*(a16++) = 2;
-	*(a16++) = ID_LDI;
+	*(a16++) = CMD_ID_LDI;
 	*(a16++) = 1;		// ts
 	*(a16++) = 0;		// tms
 	*(a16++) = 2;		// len
@@ -64,7 +59,7 @@ int main(void)
 	
 	a16 = (uint16_t *)a8;
 	*(a16++) = 3;		// num
-	*(a16++) = ID_ADD;	// id
+	*(a16++) = CMD_ID_ADD;	// id
 	*(a16++) = 1;		// ts
 	*(a16++) = 0;		// tms
 	*(a16++) = 2;		// len
@@ -74,7 +69,7 @@ int main(void)
 	
 	a16 = (uint16_t *)a8;
 	*(a16++) = 4;		// num
-	*(a16++) = ID_SBI;	// id
+	*(a16++) = CMD_ID_SBI;	// id
 	*(a16++) = 1;		// ts
 	*(a16++) = 0;		// tms
 	*(a16++) = 2;		// len
@@ -84,7 +79,7 @@ int main(void)
 	
 	a16 = (uint16_t *)a8;
 	*(a16++) = 5;		// num
-	*(a16++) = ID_CBI;	// id
+	*(a16++) = CMD_ID_CBI;	// id
 	*(a16++) = 1;		// ts
 	*(a16++) = 0;		// tms
 	*(a16++) = 2;		// len
@@ -94,21 +89,20 @@ int main(void)
 	
 	a16 = (uint16_t *)a8;
 	*(a16++) = 6;
-	*(a16++) = ID_LOOP;
+	*(a16++) = CMD_ID_LOOP;
 	*(a16++) = 1;
 	*(a16++) = 0;
 	*(a16++) = 2;
-	*(a16++) = PARAM_LOOP_END;
+	*(a16++) = CMD_PARAM_LOOP_END;
 	
 	*(a16++) = 7;		// num
-	*(a16++) = ID_STOP;	// id 
+	*(a16++) = CMD_ID_STOP;	// id 
 	
 	
 	
 	CmdImplementation cmds[COMMANDS_NUMBER] = {&ldi, &add, &sbi, &cbi};
 
 	Cyclogram cyclogram((void *)CYCLOGRAM_BASE_ADDRESS, cmds);
-	
 	
 	msec_timer_init(); 
 
